@@ -9,7 +9,7 @@ class CreatePostsTable extends Migration
     public function up()
     {
         Schema::create('posts', function (Blueprint $table) {
-            $table->increments('id');
+            $table->bigIncrements('id');
             $table->string('recruit_title');
             $table->string('game_id');
             $table->string('discord_url');

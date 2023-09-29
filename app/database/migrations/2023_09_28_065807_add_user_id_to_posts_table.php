@@ -4,7 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-class RemoveCategoryIdFromPosts extends Migration
+class AddUserIdToPostsTable extends Migration
 {
     /**
      * Run the migrations.
@@ -14,7 +14,8 @@ class RemoveCategoryIdFromPosts extends Migration
     public function up()
     {
         Schema::table('posts', function (Blueprint $table) {
-            $table->dropColumn('category_id');
+            $table->unsignedBigInteger('user_id');
+            $table->foreign('user_id')->references('id')->on('users'); 
         });
     }
 
@@ -26,7 +27,8 @@ class RemoveCategoryIdFromPosts extends Migration
     public function down()
     {
         Schema::table('posts', function (Blueprint $table) {
-            //
+            $table->dropForeign(['user_id']);
+            $table->dropColumn('user_id');
         });
     }
 }

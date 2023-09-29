@@ -11,11 +11,17 @@ class Post extends Model
         'game_id',
         'discord_url',
         'comment',
-        // 他の必要なフィールドもここに含めてください
+        'user_id',
+        'del_flg',
+        
     ];
 
     public function categories()
+{
+    return $this->belongsToMany(Category::class, 'category_post');
+}
+public function user()
     {
-        return $this->belongsToMany(Category::class);
+        return $this->belongsTo(User::class);
     }
 }

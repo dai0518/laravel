@@ -1,7 +1,7 @@
 <?php
 
 namespace App\Http\Controllers;
-
+use Illuminate\Support\Facades\Auth; 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
@@ -12,39 +12,30 @@ class PostController extends Controller
 {
     public function index(Request $request)
 {
-    $selectedCategoryId = $request->input('category_id');
-    
-    // dd($selectedCategoryId);
+    $selectedCategoryIds = $request->input('category_ids', []);
 
-    // カテゴリーが "all" の場合はすべての投稿を取得
-    if ($selectedCategoryId === 'all') {
-        $posts = Post::all();
-    } else {
-        // 特定のカテゴリーに属する投稿を取得
-        $category = Category::find($selectedCategoryId);
-
-        if ($category) {
-            $posts = $category->posts;
-        } else {
-            // カテゴリーが存在しない場合のエラーハンドリングやデフォルトの動作を設定
-            $posts = Post::all(); // 例: すべての投稿を取得
+    $posts = Post::when(count($selectedCategoryIds) > 0, function ($query) use ($selectedCategoryIds) {
+        foreach ($selectedCategoryIds as $categoryId) {
+            $query->whereHas('categories', function ($subQuery) use ($categoryId) {
+                $subQuery->where('id', $categoryId);
+            });
         }
-    }
-
-    // 他のビューにデータを渡すなどの処理を追加
+    })
+    ->where('del_flg', 0)  
+    ->orderBy('created_at', 'desc')
+    ->get();
 
     return view('post_list', [
         'posts' => $posts,
         'categories' => Category::all(),
-        'selectedCategoryId' => $selectedCategoryId,
+        'selectedCategoryIds' => $selectedCategoryIds,
     ]);
 }
 
 
-
-
     public function create()
     {
+         // カテゴリ一覧を取得して新規投稿作成ビューに渡す
         $categories = Category::all();
         return view('post.create', compact('categories'));
     }
@@ -57,41 +48,41 @@ class PostController extends Controller
 
     public function store(Request $request)
 {
-   
-    $categoryIds = json_decode($request->input('category_ids'), true);
 
-    $validator = Validator::make($request->all(), [
-        'recruit_title' => 'required|max:255',
-        'game_id' => 'required|max:50',
-        'discord_url' => 'required|url',
-        'comment' => 'required',
-        'category_ids' => 'required',
-        'category_ids.*' => 'exists:categories,id',
-    ]);
+    if (Auth::check()) {
+        $userId = Auth::id();
 
-    if ($validator->fails()) {
-        return redirect()
-            ->back()
-            ->withErrors($validator)
-            ->withInput();
+        $categoryIds = json_decode($request->input('category_ids'), true);
+
+        $validator = Validator::make($request->all(), [
+            'recruit_title' => 'required|max:255',
+            'game_id' => 'required|max:50',
+            'discord_url' => 'required|url',
+            'comment' => 'required',
+            'category_ids.*' => 'exists:categories,id',
+        ]);
+
+        if ($validator->fails()) {
+            return redirect()
+                ->back()
+                ->withErrors($validator)
+                ->withInput();
+        }
+        // 新規投稿を作成
+        Post::create([
+            'user_id' => $userId,
+            'recruit_title' => $request->recruit_title,
+            'game_id' => $request->game_id,
+            'discord_url' => $request->discord_url,
+            'comment' => $request->comment,
+            'updated_at' => now(),
+            'created_at' => now(),
+        ]);
+         // 最新の投稿を取得
+        $post = Post::latest()->first();
+        $post->categories()->attach($categoryIds);
+
+        return redirect()->route('post_list');
     }
-
-    
-    $post = new Post([
-        'recruit_title' => $request->input('recruit_title'),
-        'game_id' => $request->input('game_id'),
-        'discord_url' => $request->input('discord_url'),
-        'comment' => $request->input('comment'),
-    ]);
-
-    
-    $post->save();
-
-   
-    $post->categories()->attach($categoryIds);
-
-    return redirect()->route('post_list');
 }
-    
-
 }

@@ -1,11 +1,11 @@
 <?php
 
 namespace App\Http\Controllers\Auth;
-
+use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\Controller;
 use App\Providers\RouteServiceProvider;
 use Illuminate\Foundation\Auth\AuthenticatesUsers;
-
+use Illuminate\Http\Request;
 class LoginController extends Controller
 {
     /*
@@ -20,13 +20,14 @@ class LoginController extends Controller
     */
 
     use AuthenticatesUsers;
-
+    
     /**
      * Where to redirect users after login.
      *
      * @var string
      */
-    protected $redirectTo = RouteServiceProvider::HOME;
+    protected $redirectTo = '/';
+
 
     /**
      * Create a new controller instance.
@@ -37,4 +38,22 @@ class LoginController extends Controller
     {
         $this->middleware('guest')->except('logout');
     }
+    public function login(Request $request)
+    {
+        
+        $this->validate($request, [
+            'email'    => 'required|email',
+            'password' => 'required|min:6',
+        ]);
+
+        if (Auth::attempt(['email' => $request->email, 'password' => $request->password])) { 
+            return redirect()->intended($this->redirectTo);
+        }
+        return back()->withInput($request->only('email'));
+    }
+    public function logout()
+{
+    Auth::logout();
+    return redirect('/');
+}
 }

@@ -16,7 +16,7 @@ class User extends Authenticatable
      * @var array
      */
     protected $fillable = [
-        'name', 'email', 'password',
+        'name', 'email', 'password','image',
     ];
 
     /**
@@ -36,4 +36,25 @@ class User extends Authenticatable
     protected $casts = [
         'email_verified_at' => 'datetime',
     ];
+    public function posts()
+    {
+        return $this->hasMany(Post::class);
+    }
+    protected static function boot()
+    {
+        parent::boot();
+        
+        static::creating(function ($user) {
+            if (!$user->image) {
+                // デフォルトのユーザーアイコンを設定
+                $user->image = 'user_deficon.png'; 
+            }
+        });
+    }
+    public function getImagePathAttribute()
+{
+    return $this->image ? Storage::disk('public')->url($this->image) : null;
+}
+
+    
 }
